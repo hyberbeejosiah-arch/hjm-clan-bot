@@ -6,6 +6,7 @@ const {
   PermissionFlagsBits,
   ChannelType,
   OverwriteType,
+  ActivityType,
 } = require("discord.js");
 const { sendWelcome } = require("./welcome");
 const { sendPanel, handleTicketInteraction } = require("./tickets");
@@ -346,6 +347,7 @@ client.on("guildMemberAdd", member => {
 
 client.once("ready", () => {
   console.log(`HJM Clan Bot online as ${client.user.tag}`);
+  client.user.setPresence({ status: "dnd", activities: [{ name: "HJM Clan", type: ActivityType.Watching }] });
 });
 
 client.on("interactionCreate", async interaction => {
