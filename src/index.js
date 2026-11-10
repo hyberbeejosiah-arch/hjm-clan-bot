@@ -7,10 +7,11 @@ const {
   ChannelType,
   OverwriteType,
 } = require("discord.js");
+const { sendWelcome } = require("./welcome");
 const { sendPanel, handleTicketInteraction } = require("./tickets");
 
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds],
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
 });
 
 const ROLE_DEFS = [
@@ -338,6 +339,10 @@ async function setupClan(guild, createVoice = true) {
 
   return { roleCount: ROLE_DEFS.length, channelCount: channels.length + staffChannels.length + (createVoice ? 4 : 0) };
 }
+
+client.on("guildMemberAdd", member => {
+  sendWelcome(member).catch(console.error);
+});
 
 client.once("ready", () => {
   console.log(`HJM Clan Bot online as ${client.user.tag}`);
