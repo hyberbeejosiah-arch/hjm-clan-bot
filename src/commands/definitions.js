@@ -8,6 +8,10 @@ const commands = [
     .setName("help")
     .setDescription("Show HJM Clan Bot commands."),
   new SlashCommandBuilder()
+    .setName("ticket-panel")
+    .setDescription("Post the support ticket panel in this channel.")
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
+  new SlashCommandBuilder()
     .setName("setup-clan")
     .setDescription("Create the HJM clan roles, categories, channels, colors, and permission setup.")
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)

@@ -7,6 +7,7 @@ const {
   ChannelType,
   OverwriteType,
 } = require("discord.js");
+const { sendPanel, handleTicketInteraction } = require("./tickets");
 
 const client = new Client({
   intents: [GatewayIntentBits.Guilds],
@@ -343,7 +344,28 @@ client.once("ready", () => {
 });
 
 client.on("interactionCreate", async interaction => {
+  try {
+    if (await handleTicketInteraction(interaction)) return;
+  } catch (error) {
+    console.error(error);
+    const msg = "Something went wrong with the ticket. Check the bot has Manage Channels.";
+    if (interaction.deferred || interaction.replied) await interaction.editReply(msg).catch(() => {});
+    else await interaction.reply({ content: msg, ephemeral: true }).catch(() => {});
+    return;
+  }
   if (!interaction.isChatInputCommand()) return;
+
+  if (interaction.commandName === "ticket-panel") {
+    if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
+      return interaction.reply({ content: "You need **Manage Server** to post the ticket panel.", ephemeral: true });
+    }
+    try {
+      return await sendPanel(interaction);
+    } catch (error) {
+      console.error(error);
+      return interaction.reply({ content: "Couldn't post the panel here. Check the bot can send messages in this channel.", ephemeral: true });
+    }
+  }
 
   if (interaction.commandName === "ping") {
     return interaction.reply({ content: "🏓 HJM Clan Bot is online!", ephemeral: true });
@@ -351,7 +373,7 @@ client.on("interactionCreate", async interaction => {
 
   if (interaction.commandName === "help") {
     return interaction.reply({
-      content: "**HJM Clan Bot commands**\n`/ping` — check bot status\n`/help` — show this help\n`/setup-clan` — create/update HJM clan roles, colors, categories, channels, and permissions (Manage Server required).",
+      content: "**HJM Clan Bot commands**\n`/ping` — check bot status\n`/help` — show this help\n`/ticket-panel` — post the ticket panel in this channel (Manage Server required)\n`/setup-clan` — create/update HJM clan roles, colors, categories, channels, and permissions (Manage Server required).",
       ephemeral: true
     });
   }
