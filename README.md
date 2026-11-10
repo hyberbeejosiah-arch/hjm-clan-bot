@@ -1,37 +1,30 @@
-# HJM Clan Bot
+# HJM Clan Bot — advanced role and channel setup
 
-Starter Discord bot built with Node.js and Discord.js v14.
+## What `/setup-clan` does
+- Creates/updates 15 HJM clan roles with colors and limited permissions.
+- Creates the information, community, competitive, staff, and voice categories.
+- Creates text channels and optional voice channels.
+- Applies role-based channel access, including private staff channels.
+- Does not delete existing channels or roles.
+- Does not grant Administrator.
 
-## Included commands
-- `/ping` — confirms the bot is online.
-- `/help` — shows available commands.
-- `/setup-clan` — creates missing starter roles, categories and text channels. It does not delete existing items. New roles have no permissions by default.
+## Required Railway variables
+- `DISCORD_TOKEN`
+- `CLIENT_ID`
+- `GUILD_ID`
 
-## Requirements
-- Node.js 20+
-- A Discord application and bot token
-- The bot invited to your existing HJM server
-- Bot role positioned above roles it must manage
+Never share the bot token. If it is exposed, reset it in the Discord Developer Portal.
 
-## Run locally
-1. Install Node.js 20 or newer.
-2. Copy `.env.example` to `.env`.
-3. Fill in `DISCORD_TOKEN`, `CLIENT_ID`, and `GUILD_ID`.
-4. Run `npm install`.
-5. Run `npm run deploy`.
-6. Run `npm start`.
+## Discord bot permissions
+The bot needs **Manage Roles**, **Manage Channels**, and **View Channels**. It also needs to be placed above the HJM roles it creates in Server Settings → Roles. Do not grant Administrator.
 
-Never share your bot token or commit `.env` to GitHub.
+## Update an existing Railway/GitHub project
+Replace the matching files in your GitHub repository with the files in this ZIP. Keep your Railway variables unchanged.
+After the GitHub commit deploys:
+1. Railway Settings → Deploy → Pre-deploy Command: `npm run deploy`
+2. Redeploy the service.
+3. In Discord, run `/setup-clan`.
+4. Check the created role colors, role order, and private staff channels.
 
-## Railway
-1. Upload this project to a private GitHub repository.
-2. Create a Railway project and deploy from that repository.
-3. Add `DISCORD_TOKEN`, `CLIENT_ID`, and `GUILD_ID` in Railway Variables.
-4. Railway runs `npm start` using the package start script.
-5. Run `npm run deploy` once from a local terminal after setting the same environment values, or use Railway's one-time command feature if available.
-
-## Required bot permissions
-For this starter: View Channels, Manage Channels, Manage Roles, Send Messages, Embed Links, Read Message History. Do not grant Administrator. The bot role must be above the roles it needs to create/manage, but below protected owner roles.
-
-## Important
-This is the first working foundation, not the complete ticket/recruitment/moderation suite yet. Add those modules in later stages. Review every permission overwrite before using `/setup-clan` in a live server.
+## Notes
+This setup applies permissions to the HJM categories/channels with these names. If you already have channels with those exact names, their permission overwrites and category placement will be updated. Other channels are left alone. Review the permissions before inviting everyone.
