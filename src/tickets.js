@@ -9,6 +9,7 @@ const {
 
 const OPEN_ID = "hjm_ticket_open";
 const CLOSE_ID = "hjm_ticket_close";
+const COUNTDOWN = 5;
 const CATEGORY_NAME = "🎫 TICKETS";
 const STAFF_ROLES = ["🔨 Moderator", "⚔️ Admin", "🛡️ Head Admin", "💎 Director", "🔱 Co-Founder", "👑 Founder"];
 
@@ -20,19 +21,41 @@ const MEMBER_ALLOW = [
   PermissionFlagsBits.EmbedLinks,
 ];
 
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
 async function sendPanel(interaction) {
   const embed = new EmbedBuilder()
-    .setTitle("🎫 HJM Support Tickets")
-    .setDescription("Need help, want to report something, or have a question for staff?\nPress the button below to open a private ticket.")
-    .setColor(0x7B2CBF);
+    .setAuthor({ name: "HJM CLAN  •  SUPPORT CENTER" })
+    .setTitle("🎫  Need help? Open a ticket")
+    .setDescription(
+      "```fix\nPrivate. Fast. Straight to staff.\n```\n" +
+      "**What tickets are for**\n" +
+      "> 🛡️  Reports and issues\n" +
+      "> 📝  Clan applications and questions\n" +
+      "> 🤝  Partnerships and anything else\n\n" +
+      "Press **Open Ticket** below. A private channel is created for you and staff are pinged instantly."
+    )
+    .setColor(0x7B2CBF)
+    .setThumbnail(interaction.guild.iconURL({ size: 256 }))
+    .setFooter({ text: "HJM Clan  •  One ticket per member" })
+    .setTimestamp();
   const row = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(OPEN_ID).setLabel("Open Ticket").setEmoji("🎫").setStyle(ButtonStyle.Primary)
+    new ButtonBuilder().setCustomId(OPEN_ID).setLabel("Open Ticket").setEmoji("🎫").setStyle(ButtonStyle.Success)
   );
   await interaction.channel.send({ embeds: [embed], components: [row] });
   return interaction.reply({ content: "Ticket panel posted.", ephemeral: true });
 }
 
 async function openTicket(interaction) {
+  const state = {};
+  try {
+    return await openTicketInner(interaction, state);
+  } finally {
+    clearInterval(state.spin);
+  }
+}
+
+async function openTicketInner(interaction, state) {
   const guild = interaction.guild;
   await interaction.deferReply({ ephemeral: true });
 
@@ -42,6 +65,10 @@ async function openTicket(interaction) {
   if (existing) {
     return interaction.editReply(`You already have an open ticket: ${existing}`);
   }
+
+  const frames = ["🔄 Creating your ticket", "🔄 Creating your ticket.", "🔄 Creating your ticket..", "🔄 Creating your ticket..."];
+  let frame = 0;
+  const spin = state.spin = setInterval(() => interaction.editReply(frames[++frame % frames.length]).catch(() => {}), 800);
 
   let category = guild.channels.cache.find(c => c.type === ChannelType.GuildCategory && c.name === CATEGORY_NAME);
   if (!category) {
@@ -71,14 +98,39 @@ async function openTicket(interaction) {
     permissionOverwrites: overwrites,
   });
 
+  clearInterval(spin);
+
+  const staffPings = [];
+  for (const name of ["👑 Founder", ...STAFF_ROLES]) {
+    const role = guild.roles.cache.find(r => r.name === name);
+    if (role && !staffPings.includes(role.id)) staffPings.push(role.id);
+  }
+  const pingText = staffPings.map(id => `<@&${id}>`).join(" ");
+
+  const embed = new EmbedBuilder()
+    .setAuthor({ name: interaction.user.tag, iconURL: interaction.user.displayAvatarURL() })
+    .setTitle("🎫  Ticket opened")
+    .setDescription(
+      `Welcome ${interaction.user}, thanks for reaching out.\n\n` +
+      "```fix\nDescribe what you need below. Staff have been notified.\n```"
+    )
+    .addFields(
+      { name: "Opened by", value: `${interaction.user}`, inline: true },
+      { name: "Opened", value: `<t:${Math.floor(Date.now() / 1000)}:R>`, inline: true },
+      { name: "Status", value: "🟢 Waiting for staff", inline: true }
+    )
+    .setColor(0x57F287)
+    .setTimestamp();
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(CLOSE_ID).setLabel("Close Ticket").setEmoji("🔒").setStyle(ButtonStyle.Danger)
   );
   await channel.send({
-    content: `${interaction.user} welcome. Staff will be with you shortly. Describe what you need below.`,
+    content: `🔔 ${pingText || "Staff"} — new ticket from ${interaction.user}`,
+    embeds: [embed],
     components: [row],
+    allowedMentions: { roles: staffPings, users: [interaction.user.id] },
   });
-  return interaction.editReply(`Your ticket is ready: ${channel}`);
+  return interaction.editReply(`✅ Your ticket is ready: ${channel}`);
 }
 
 async function closeTicket(interaction) {
@@ -92,8 +144,18 @@ async function closeTicket(interaction) {
   if (!isOwner && !isStaff) {
     return interaction.reply({ content: "Only the ticket owner or staff can close this ticket.", ephemeral: true });
   }
-  await interaction.reply(`🔒 Ticket closed by ${interaction.user}. This channel will be deleted in 5 seconds.`);
-  setTimeout(() => channel.delete("Ticket closed").catch(console.error), 5000);
+  const render = n => new EmbedBuilder()
+    .setTitle("🔒  Ticket closing")
+    .setDescription(`Closed by ${interaction.user}.\n\n**Deleting in ${n}...**\n${"🟥".repeat(n)}${"⬛".repeat(COUNTDOWN - n)}`)
+    .setColor(0xED4245);
+  await interaction.update({ components: [] }).catch(() => {});
+  const msg = await channel.send({ embeds: [render(COUNTDOWN)] });
+  for (let n = COUNTDOWN - 1; n >= 1; n--) {
+    await sleep(1000);
+    await msg.edit({ embeds: [render(n)] }).catch(() => {});
+  }
+  await sleep(1000);
+  await channel.delete("Ticket closed").catch(console.error);
 }
 
 async function handleTicketInteraction(interaction) {
