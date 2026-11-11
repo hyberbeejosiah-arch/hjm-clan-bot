@@ -146,21 +146,38 @@ async function closeTicket(interaction) {
   if (!isOwner && !isStaff) {
     return interaction.reply({ content: "Only the ticket owner or staff can close this ticket.", ephemeral: true });
   }
+  await interaction.update({ components: [] }).catch(() => {});
+  return runClose(channel, ownerId, interaction.user, interaction.client);
+}
+
+// Close by typing in the ticket channel (e.g. "close the ticket").
+const CLOSE_RE = /^\W*(please\s+)?(close|finish|end)\b.{0,25}\bticket\b|^\W*(please\s+)?close( it| this)?\W*$/i;
+
+async function closeTicketFromMessage(message) {
+  const channel = message.channel;
+  const ownerId = channel.topic?.startsWith("ticket:") ? channel.topic.slice(7) : null;
+  if (!ownerId || message.author.bot || !CLOSE_RE.test(message.content || "")) return false;
+  const isStaff = message.member?.permissions.has(PermissionFlagsBits.ManageMessages);
+  if (message.author.id !== ownerId && !isStaff) return false;
+  await runClose(channel, ownerId, message.author, message.client);
+  return true;
+}
+
+async function runClose(channel, ownerId, closer, client) {
   const render = n => new EmbedBuilder()
     .setTitle("🔒  Ticket closing")
-    .setDescription(`Closed by ${interaction.user}.\n\n**Deleting in ${n}...**\n${"🟥".repeat(n)}${"⬛".repeat(COUNTDOWN - n)}`)
+    .setDescription(`Closed by ${closer}.\n\n**Deleting in ${n}...**\n${"🟥".repeat(n)}${"⬛".repeat(COUNTDOWN - n)}`)
     .setColor(0xED4245);
-  await interaction.update({ components: [] }).catch(() => {});
   const msg = await channel.send({ embeds: [render(COUNTDOWN)] });
   for (let n = COUNTDOWN - 1; n >= 1; n--) {
     await sleep(1000);
     await msg.edit({ embeds: [render(n)] }).catch(() => {});
   }
   const summary = await summarize(channel);
-  const dm = `Your ticket **#${channel.name}** in **${channel.guild.name}** was closed by ${interaction.user}.` +
+  const dm = `Your ticket **#${channel.name}** in **${channel.guild.name}** was closed by ${closer}.` +
     (summary ? `\n\n**Summary**\n${summary}` : "");
-  for (const id of new Set([ownerId, interaction.user.id])) {
-    try { await (await interaction.client.users.fetch(id)).send(dm.slice(0, 1990)); }
+  for (const id of new Set([ownerId, closer.id])) {
+    try { await (await client.users.fetch(id)).send(dm.slice(0, 1990)); }
     catch (e) { console.error("Ticket DM failed for", id, e.message); }
   }
   await sleep(1000);
@@ -175,4 +192,4 @@ async function handleTicketInteraction(interaction) {
   return false;
 }
 
-module.exports = { sendPanel, handleTicketInteraction };
+module.exports = { sendPanel, handleTicketInteraction, closeTicketFromMessage };
