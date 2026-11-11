@@ -10,7 +10,7 @@ const {
 } = require("discord.js");
 const { sendWelcome } = require("./welcome");
 const { handleTicketMessage } = require("./ai");
-const { sendPanel, handleTicketInteraction } = require("./tickets");
+const { sendPanel, handleTicketInteraction, closeTicketFromMessage } = require("./tickets");
 
 const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent],
@@ -342,7 +342,12 @@ async function setupClan(guild, createVoice = true) {
   return { roleCount: ROLE_DEFS.length, channelCount: channels.length + staffChannels.length + (createVoice ? 4 : 0) };
 }
 
-client.on("messageCreate", m => handleTicketMessage(client, m));
+client.on("messageCreate", async m => {
+  try {
+    if (await closeTicketFromMessage(m)) return;
+  } catch (e) { console.error("Close by message failed:", e); return; }
+  handleTicketMessage(client, m);
+});
 
 client.on("guildMemberAdd", member => {
   sendWelcome(member).catch(console.error);
