@@ -10,6 +10,7 @@
 
 ## Required Railway variables
 - `DISCORD_TOKEN`
+- `AI_API_KEY` — enables the ticket AI assistant (OpenAI-compatible); optional `AI_BASE_URL`, `AI_MODEL`, `AI_SYSTEM_PROMPT`. Requires the **Message Content Intent** in the Discord developer portal.
 - `CLIENT_ID`
 - `GUILD_ID`
 

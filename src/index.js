@@ -9,10 +9,11 @@ const {
   ActivityType,
 } = require("discord.js");
 const { sendWelcome } = require("./welcome");
+const { handleTicketMessage } = require("./ai");
 const { sendPanel, handleTicketInteraction } = require("./tickets");
 
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent],
 });
 
 const ROLE_DEFS = [
@@ -340,6 +341,8 @@ async function setupClan(guild, createVoice = true) {
 
   return { roleCount: ROLE_DEFS.length, channelCount: channels.length + staffChannels.length + (createVoice ? 4 : 0) };
 }
+
+client.on("messageCreate", m => handleTicketMessage(client, m));
 
 client.on("guildMemberAdd", member => {
   sendWelcome(member).catch(console.error);
