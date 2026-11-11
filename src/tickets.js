@@ -7,6 +7,8 @@ const {
   PermissionFlagsBits,
 } = require("discord.js");
 
+const { summarize } = require("./ai");
+
 const OPEN_ID = "hjm_ticket_open";
 const CLOSE_ID = "hjm_ticket_close";
 const COUNTDOWN = 5;
@@ -153,6 +155,13 @@ async function closeTicket(interaction) {
   for (let n = COUNTDOWN - 1; n >= 1; n--) {
     await sleep(1000);
     await msg.edit({ embeds: [render(n)] }).catch(() => {});
+  }
+  const summary = await summarize(channel);
+  const dm = `Your ticket **#${channel.name}** in **${channel.guild.name}** was closed by ${interaction.user}.` +
+    (summary ? `\n\n**Summary**\n${summary}` : "");
+  for (const id of new Set([ownerId, interaction.user.id])) {
+    try { await (await interaction.client.users.fetch(id)).send(dm.slice(0, 1990)); }
+    catch (e) { console.error("Ticket DM failed for", id, e.message); }
   }
   await sleep(1000);
   await channel.delete("Ticket closed").catch(console.error);
